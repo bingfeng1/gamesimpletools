@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <style>
+        .flex {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .flex-wrap{
+            display: flex;
+            flex-wrap: wrap;
+        }
+
+        div.flex+div.flex {
+            margin-top: 4px;
+        }
+
+        /* 实弹，空弹样式 */
+        div.red::before,
+        div.gray::before {
+            content: "";
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+        }
+
+        div.red::before {
+            background-color: red;
+        }
+
+        div.gray::before {
+            background-color: gray;
+        }
+
+        div.button {
+            padding: 6px 10px;
+            border-radius: 4px;
+            background-color: rgb(0, 128, 255);
+            color: white;
+            display: inline-block;
+            cursor: pointer;
+        }
+
+        div.button:hover {
+            background-color: #409EFF;
+        }
+
+        /* 子弹 */
+        div.bullet {
+            min-width: 2em;
+            border: 1px dashed rgb(151, 151, 151);
+        }
+
+        div.bullet:first-child {
+            border: 2px solid rgb(255, 217, 0);
+        }
+
+        select {
+            border: 0;
+        }
+
+        select:focus-visible {
+            outline: 0;
+        }
+
+        div.shotbtn {
+            border: 2px solid #eebe77;
+            border-radius: 10px;
+            padding: 4px 10px;
+            cursor: pointer;
+            box-shadow: inset 0px 0px 10px 0px #eebe77;
+            transition: all 0.5s;
+        }
+
+        div.shotbtn:hover {
+            border-color: #f89898;
+            box-shadow: inset 0px 0px 10px 0px #f89898;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app">
+        <div class="flex">
+            <label>实弹</label>
+            <input type="number" min="0" v-model.number="redNum">
+        </div>
+        <div class="flex">
+            <label>空弹</label>
+            <input type="number" min="0" v-model.number="grayNum">
+        </div>
+        <div class="flex button" @click="setBullets">
+            如与上次子弹数量相同，点击重置子弹
+        </div>
+
+        <!-- 设置发射的子弹 -->
+        <div class="flex">
+            <div>发射子弹的类型</div>
+            <div class="flex red shotbtn" @click="shooting('red')">
+                实弹：{{redNum - shootedRed}}
+            </div>
+            <div class="flex gray shotbtn" @click="shooting('gray')" style="margin-top: 0;">
+                空弹：{{grayNum - shootedGray}}
+            </div>
+        </div>
+
+        <!-- 发射弹夹 -->
+        <div class="flex flex-wrap">
+            <div class="flex bullet" :class="bullet.type" v-for="(bullet,i) in showBullets" style="margin-top: 0;">
+                <span>{{i+1}}</span>
+                <select v-model="bullet.type">
+                    <option value="">
+                        未知
+                    </option>
+                    <option value="red">
+                        实弹
+                    </option>
+                    <option value="gray">
+                        空弹
+                    </option>
+                </select>
+            </div>
+        </div>
+        <div class="flex">
+            {{message}}
+        </div>
+
+    </div>
+
+    <script>
+        const { createApp, ref, computed, watch, onMounted } = Vue
+        const vueParams = {
+            setup() {
+                // 实弹
+                const redNum = ref(3)
+                // 空弹
+                const grayNum = ref(3)
+
+                // 总发射弹夹数量
+                const allNum = computed(() => {
+                    return redNum.value + grayNum.value
+                })
+
+                watch([redNum, grayNum], () => {
+                    setBullets()
+                })
+
+                // 所有子弹对象集合
+                const bullets = ref([])
+
+                // 重置
+                const resetAll = () => {
+                    bullets.value = []
+                    shootedRed.value = 0
+                    shootedGray.value = 0
+                }
+
+                // 设置子弹对象
+                const setBullets = () => {
+                    resetAll()
+                    for (let i = 0; i < allNum.value; i++) {
+                        bullets.value.push({
+                            type: ""
+                        })
+                    }
+                }
+
+                onMounted(() => {
+                    setBullets()
+                })
+
+                // 显示的子弹
+                const showBullets = computed(() => {
+                    return bullets.value.filter((_, i) => {
+                        return i >= shootedBulletNum.value
+                    })
+                })
+
+
+                // 已打出子弹数量
+                const shootedRed = ref(0)
+                const shootedGray = ref(0)
+
+                // 已发射子弹数量
+                const shootedBulletNum = computed(() => {
+                    return shootedRed.value + shootedGray.value
+                })
+
+                const message = ref("")
+                // 设置射击的子弹
+                const shooting = (type) => {
+                    if (allNum.value === 0) {
+                        message.value = "此轮结束，重新设置"
+                    }
+                    if (type === "red" && shootedRed.value !== redNum.value) {
+                        shootedRed.value += 1
+                    }
+                    if (type === "gray" && shootedGray.value !== grayNum.value) {
+                        shootedGray.value += 1
+                    }
+                }
+
+                return {
+                    redNum,
+                    grayNum,
+                    allNum,
+                    showBullets,
+                    setBullets,
+                    shooting,
+                    message,
+                    shootedRed,
+                    shootedGray
+                }
+            }
+        }
+
+        const myapp = createApp(vueParams)
+        myapp.mount("#app")
+
+
+    </script>
+</body>
+
+</html>
